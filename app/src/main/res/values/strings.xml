@@ -5,4 +5,5 @@
     <string name="download">Download</string>
     <string name="paste">Paste</string>
     <string name="history">Download history</string>
+    <string name="search_hint">Search downloads</string>
 </resources>

@@ -16,6 +16,8 @@ import android.os.Build;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.text.InputType;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
@@ -114,12 +116,30 @@ public final class MainActivity extends Activity {
         TextView heading = label(getString(R.string.history), 18, R.color.text_primary);
         heading.setPadding(0, dp(10), 0, dp(8));
         root.addView(heading);
+        EditText search = input(getString(R.string.search_hint), false);
+        search.addTextChangedListener(new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                filterHistory(s.toString());
+            }
+            @Override public void afterTextChanged(Editable s) { }
+        });
+        root.addView(search, new LinearLayout.LayoutParams(-1, dp(50)));
         ScrollView scroll = new ScrollView(this);
         history = new LinearLayout(this);
         history.setOrientation(LinearLayout.VERTICAL);
         scroll.addView(history);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         setContentView(root);
+    }
+
+    private void filterHistory(String query) {
+        String normalized = query.trim().toLowerCase();
+        for (TextView row : rows.values()) {
+            boolean visible = normalized.isEmpty()
+                    || row.getText().toString().toLowerCase().contains(normalized);
+            row.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void enqueue() {
