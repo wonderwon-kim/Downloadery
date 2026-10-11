@@ -200,7 +200,7 @@ public final class MainActivity extends Activity {
     private long queueDownload(String value, String name) {
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(value));
         request.setTitle(name);
-        request.setDescription(value);
+        request.setDescription(descriptionFor(value));
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
         request.setAllowedOverMetered(true);
         request.setAllowedOverRoaming(false);
@@ -312,7 +312,18 @@ public final class MainActivity extends Activity {
 
     static String safeName(String value) {
         String cleaned = value.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
-        return cleaned.isEmpty() ? "download" : cleaned;
+        if (cleaned.isEmpty()) return "download";
+        return cleaned.length() > 180 ? cleaned.substring(0, 180).trim() : cleaned;
+    }
+
+    private static String descriptionFor(String value) {
+        try {
+            URI uri = URI.create(value);
+            String path = uri.getPath();
+            return uri.getHost() + (path == null || path.isEmpty() ? "/" : path);
+        } catch (IllegalArgumentException e) {
+            return "Download";
+        }
     }
 
     private static String mimeTypeFor(String value) {

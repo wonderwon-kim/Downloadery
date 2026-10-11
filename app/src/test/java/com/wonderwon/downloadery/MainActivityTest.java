@@ -18,6 +18,7 @@ public class MainActivityTest {
     @Test public void sanitizesPathSeparatorsAndEmptyNames() {
         assertEquals("a__b.txt", MainActivity.safeName("a:/b.txt"));
         assertEquals("download", MainActivity.safeName(" \u0000 "));
+        assertEquals(180, MainActivity.safeName("x".repeat(200)).length());
     }
 
     @Test public void derivesFilenameFromUrlPath() {
