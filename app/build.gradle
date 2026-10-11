@@ -2,8 +2,8 @@ plugins {
     id "com.android.application"
 }
 
-def releaseVersionCode = (providers.gradleProperty("versionCode").orElse("1").get()).toInteger()
-def releaseVersionName = providers.gradleProperty("versionName").orElse("1.0.0").get()
+def releaseVersionCode = (providers.gradleProperty("versionCode").orElse("2").get()).toInteger()
+def releaseVersionName = providers.gradleProperty("versionName").orElse("0.2.0").get()
 
 android {
     namespace "com.wonderwon.downloadery"
@@ -17,10 +17,25 @@ android {
         versionName releaseVersionName
     }
 
+    signingConfigs {
+        release {
+            def keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            if (keystorePath) {
+                storeFile file(keystorePath)
+                storePassword System.getenv("ANDROID_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("ANDROID_KEY_ALIAS")
+                keyPassword System.getenv("ANDROID_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled false
             shrinkResources false
+            if (System.getenv("ANDROID_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
@@ -38,4 +53,12 @@ android {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.13.2"
 }

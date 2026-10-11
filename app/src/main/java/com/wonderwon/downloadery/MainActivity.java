@@ -24,6 +24,7 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.webkit.MimeTypeMap;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -31,7 +32,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 public final class MainActivity extends Activity {
-    private static final String PREFS = "downloads";
     private static final String IDS = "ids";
     private static final String URL_PREFIX = "url_";
     private static final String NAME_PREFIX = "name_";
@@ -41,6 +41,8 @@ public final class MainActivity extends Activity {
     private LinearLayout history;
     private final Map<Long, TextView> rows = new LinkedHashMap<>();
     private final ArrayList<Long> ids = new ArrayList<>();
+    private String pendingUrl;
+    private String pendingName;
 
     private final BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
@@ -54,12 +56,18 @@ public final class MainActivity extends Activity {
         manager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
         if (Build.VERSION.SDK_INT >= 33) {
             registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-                    RECEIVER_NOT_EXPORTED);
+                    RECEIVER_EXPORTED);
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 10);
             }
         } else {
             registerReceiver(downloadReceiver, new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
+                && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 11);
         }
         buildUi();
         readHistory();
@@ -122,6 +130,19 @@ public final class MainActivity extends Activity {
         }
         String name = filenameInput.getText().toString().trim();
         if (name.isEmpty()) name = fileNameFromUrl(value);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M
+                && Build.VERSION.SDK_INT <= Build.VERSION_CODES.P
+                && checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+            pendingUrl = value;
+            pendingName = name;
+            requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 11);
+            return;
+        }
+        startDownload(value, name);
+    }
+
+    private void startDownload(String value, String name) {
         long id = queueDownload(value, name);
         ids.add(id);
         getPreferences(MODE_PRIVATE).edit()
@@ -133,6 +154,21 @@ public final class MainActivity extends Activity {
         urlInput.setText("");
         filenameInput.setText("");
         toast("Download queued");
+    }
+
+    @Override public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(requestCode, permissions, results);
+        if (requestCode == 11 && pendingUrl != null) {
+            String value = pendingUrl;
+            String name = pendingName;
+            pendingUrl = null;
+            pendingName = null;
+            if (results.length > 0 && results[0] == PackageManager.PERMISSION_GRANTED) {
+                startDownload(value, name);
+            } else {
+                toast("Storage permission is required on Android 9 and older");
+            }
+        }
     }
 
     private void readHistory() {
@@ -154,7 +190,9 @@ public final class MainActivity extends Activity {
         row.setBackgroundColor(getColor(R.color.surface));
         row.setOnClickListener(v -> openDownloadedFile(id));
         row.setOnLongClickListener(v -> handleLongPress(id));
-        history.addView(row, 0, new LinearLayout.LayoutParams(-1, dp(68)));
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2);
+        rowParams.setMargins(0, 0, 0, dp(6));
+        history.addView(row, 0, rowParams);
         rows.put(id, row);
         refreshRow(id);
     }
@@ -166,6 +204,9 @@ public final class MainActivity extends Activity {
         request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
         request.setAllowedOverMetered(true);
         request.setAllowedOverRoaming(false);
+        request.setVisibleInDownloadsUi(true);
+        String mimeType = mimeTypeFor(name);
+        if (!mimeType.isEmpty()) request.setMimeType(mimeType);
         request.setDestinationInExternalPublicDir(
                 Environment.DIRECTORY_DOWNLOADS, "Downloadery/" + safeName(name));
         return manager.enqueue(request);
@@ -250,7 +291,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private static boolean isHttpUrl(String value) {
+    static boolean isHttpUrl(String value) {
         try {
             URI uri = URI.create(value);
             return ("http".equalsIgnoreCase(uri.getScheme()) || "https".equalsIgnoreCase(uri.getScheme()))
@@ -260,7 +301,7 @@ public final class MainActivity extends Activity {
         }
     }
 
-    private static String fileNameFromUrl(String value) {
+    static String fileNameFromUrl(String value) {
         String path = Uri.parse(value).getPath();
         if (path != null && !path.endsWith("/")) {
             String candidate = path.substring(path.lastIndexOf('/') + 1);
@@ -269,9 +310,17 @@ public final class MainActivity extends Activity {
         return "download-" + System.currentTimeMillis();
     }
 
-    private static String safeName(String value) {
+    static String safeName(String value) {
         String cleaned = value.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "_").trim();
         return cleaned.isEmpty() ? "download" : cleaned;
+    }
+
+    private static String mimeTypeFor(String value) {
+        int dot = value.lastIndexOf('.');
+        if (dot < 0 || dot == value.length() - 1 || value.indexOf('/', dot) >= 0) return "";
+        String extension = value.substring(dot + 1).toLowerCase();
+        String mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension);
+        return mimeType == null ? "application/octet-stream" : mimeType;
     }
 
     private String joinIds() {

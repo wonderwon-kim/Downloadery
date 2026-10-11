@@ -36,6 +36,11 @@ armv7a APK, generates a SHA-256 checksum, and attaches both to a GitHub release.
 The APK is currently unsigned; configure a repository signing secret before
 distributing it as a production release.
 
+For signed releases, configure `ANDROID_KEYSTORE_BASE64`,
+`ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`
+repository secrets. Without those secrets the workflow intentionally produces
+an unsigned validation APK instead of inventing or committing a signing key.
+
 Tap a completed item to open it. Long-press a queued/running item to cancel it,
 or long-press a failed/paused item to retry it.
 
