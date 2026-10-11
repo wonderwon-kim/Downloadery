@@ -13,6 +13,32 @@
 - [Scripts & Plugins](https://github.com/KurtBestor/Hitomi-Downloader/wiki/Scripts-&-Plugins)
 - [Chrome Extension](https://github.com/KurtBestor/Hitomi-Downloader/wiki/Chrome-Extension)
 
+## Android (armv7a)
+
+Downloadery now includes a lightweight Android client under `app/`. It is designed
+for 32-bit ARM devices (`armeabi-v7a`) and uses Android's native `DownloadManager`
+for resumable background downloads, notifications, and download history. It accepts
+direct `http`/`https` file and media URLs, clipboard paste, Android share intents,
+and links opened from a browser. Torrent/magnet downloads are intentionally not
+included.
+
+To build locally:
+
+```bash
+./gradlew --no-daemon :app:assembleRelease
+```
+
+The armv7a APK is generated at
+`app/build/outputs/apk/armeabi-v7a/release/app-armeabi-v7a-release.apk`.
+Pushing a tag such as `v1.0.0` runs
+[the Android release workflow](.github/workflows/android-release.yml), builds the
+armv7a APK, generates a SHA-256 checksum, and attaches both to a GitHub release.
+The APK is currently unsigned; configure a repository signing secret before
+distributing it as a production release.
+
+Tap a completed item to open it. Long-press a queued/running item to cancel it,
+or long-press a failed/paused item to retry it.
+
 ## Demo
 <img src="https://gitflic.ru/project/kurtbestor/hitomi-downloader/blob/raw?file=imgs%2Fhow_to_download.gif">
 
@@ -22,7 +48,6 @@
 - 💻 Supports 24 threads in a single task
 - 🚥 Supports speed limit
 - 📜 Supports user scripts
-- 🧲 Supports BitTorrent & Magnet
 - 🎞️ Supports M3U8 & MPD format videos
 - 🌙 Dark mode
 - 🧳 Portable
@@ -72,3 +97,9 @@
 | **Youku** | <https://youku.com> |
 | **YouTube** | <https://youtube.com> |
 | **and more...** | [Supported sites by yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md) |
+
+The legacy desktop extractor list above is retained as a compatibility reference.
+The Android client currently ships the direct URL path; yt-dlp site extraction,
+format selection, playlists, subtitles, and HLS/DASH processing are being added
+as separate Android engine milestones. Torrent and magnet downloads are not
+planned for the Android client.

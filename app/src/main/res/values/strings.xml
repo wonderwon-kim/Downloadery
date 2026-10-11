@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">Downloadery</string>
+    <string name="url_hint">Paste a direct file or media URL</string>
+    <string name="filename_hint">Filename (optional)</string>
+    <string name="download">Download</string>
+    <string name="paste">Paste</string>
+    <string name="history">Download history</string>
+</resources>
