@@ -102,4 +102,6 @@ The legacy desktop extractor list above is retained as a compatibility reference
 The Android client currently ships the direct URL path; yt-dlp site extraction,
 format selection, playlists, subtitles, and HLS/DASH processing are being added
 as separate Android engine milestones. Torrent and magnet downloads are not
-planned for the Android client.
+planned for the Android client. The currently reviewed `yt-dlp-android` AAR
+supports `arm64-v8a` and `x86_64`, but not `armeabi-v7a`, so it cannot be added
+to the armv7a release until an armv7-compatible runtime is built and verified.
